@@ -1,6 +1,6 @@
 format: 1
 id: nightmanager
-version: 1.0.0
+version: 1.1.0
 name: NightManager
 summary: Watches your services for you, writes evidence-based situation reports, files Jira tickets for what needs fixing, and keeps its own notes tidy.
 apps:
