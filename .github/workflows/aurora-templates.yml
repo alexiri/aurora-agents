@@ -7,8 +7,8 @@
 #             never replaced: if the release exists and the freshly packed
 #             bytes differ, the job fails and tells you to raise the version.
 #
-# Copied from Aurora's templates/examples/. Before the first run, set
-# AURORA_CLI_VERSION below (two places) to a published aurora CLI release.
+# Copied from Aurora's templates/examples/. The aurora CLI is pinned to the
+# release cli-v0.1.0 of alexiri/aurora (two places below); raise it to upgrade.
 
 name: aurora-templates
 
@@ -27,12 +27,11 @@ jobs:
       - uses: actions/checkout@v4
       # Install the aurora CLI at a pinned version. Either download the release
       # binary (below) or build it:
-      #   cargo install --locked aurora-cli --version AURORA_CLI_VERSION
       - name: Install the aurora CLI
         run: |
           cd /usr/local/bin
           curl -fsSL \
-            "https://github.com/aurora/aurora/releases/download/aurora-cli-vAURORA_CLI_VERSION/aurora-linux-x86_64" \
+            "https://github.com/alexiri/aurora/releases/download/cli-v0.1.0/aurora-linux-x86_64" \
             -o aurora
           chmod +x aurora
           aurora --version
@@ -58,7 +57,7 @@ jobs:
         run: |
           cd /usr/local/bin
           curl -fsSL \
-            "https://github.com/aurora/aurora/releases/download/aurora-cli-vAURORA_CLI_VERSION/aurora-linux-x86_64" \
+            "https://github.com/alexiri/aurora/releases/download/cli-v0.1.0/aurora-linux-x86_64" \
             -o aurora
           chmod +x aurora
           aurora --version
