@@ -1,0 +1,18 @@
+format: 1
+id: nightmanager
+version: 1.0.0
+name: NightManager
+summary: Watches your services for you, writes evidence-based situation reports, files Jira tickets for what needs fixing, and keeps its own notes tidy.
+apps:
+  - app: grafana
+    required: true
+    level: read
+    why: Runs the Prometheus and OpenSearch queries behind every report, and reads dashboards and alert state. It never changes dashboards, alerts or silences.
+  - app: jira-dc
+    required: false
+    level: ask
+    why: Searches for existing tickets and files new ones. Creating or commenting on a ticket waits for your approval. Without it the agent only reports, and writes ticket drafts into the report.
+  - app: gitlab
+    required: false
+    level: read
+    why: Reads the service's configuration and recent changes (Puppet, Helm charts, application code) when a finding points at a deployment.

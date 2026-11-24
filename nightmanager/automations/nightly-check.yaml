@@ -1,0 +1,16 @@
+kind: schedule
+name: Nightly check
+prompt: >-
+  Write a situation report for the last 12 hours, ending now, for every
+  service that has an operator memory (`service-<name>`), except a memory whose
+  text begins with EXAMPLE. Use memory_list to find them. Use the
+  situation-analysis skill, reading service-<name> and nightmanager-<name>
+  first. If Jira is connected, file or update tickets only as the
+  jira-ticketing skill allows, at medium confidence or higher and at most
+  three new tickets per service; if it is not, write ticket drafts into the
+  report instead. If no service memory exists, say so and stop. Keep the final
+  message short: for each service, its status, the main findings and any
+  ticket keys.
+cadence:
+  cron: "0 6 * * *"
+enabled: false

@@ -1,0 +1,11 @@
+api: 1
+
+repo:
+  name: Aurora agents
+  description: >-
+    Ready-made agents for Aurora. Each directory is one template that can be
+    deployed from the workspace's template gallery after an admin approves it.
+  homepage: https://github.com/alexiri/aurora-agents
+
+packages:
+  url: https://github.com/alexiri/aurora-agents/releases/download/{id}-v{version}/{id}-{version}.zip

@@ -1,0 +1,4 @@
+format: 1
+name: NightManager
+model: default
+may_message_first: false

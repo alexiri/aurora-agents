@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""ticket-check: check a ticket draft against the jira-ticketing template before converting or filing it.
+
+  ticket-check draft.md                       check; print problems, exit 1 if any
+  ticket-check draft.md --body > body.md      check, then print the description without the Summary line
+  ticket-check --issue issue.json [--label nightmanager]   check a create_issue body built by md2jira
+
+A draft is Markdown: first line `Summary: ...`, then the sections as `## <name>` headings, in the
+template's order: Problem, Hypothesis, Evidence, Contradicting evidence, Proposed change, Verification and
+acceptance criteria, Additional context. Checks: summary present and under 120 characters; every section
+present, non-empty and in order; the hypothesis states a confidence (low, medium or high); no template
+placeholder left (`[Service]`, `[...]`); no look-alike secret (token=, password:, Authorization: Bearer,
+long hex or base64 strings after key words). For --issue: summary and description present, the label
+present (default nightmanager), no `labels` missing. Nothing is sent anywhere.
+Exit status: 0 ok, 1 problems found, 2 bad usage.
+"""
+import argparse
+import json
+import re
+import sys
+
+SECTIONS = ["Problem", "Hypothesis", "Evidence", "Contradicting evidence", "Proposed change",
+            "Verification and acceptance criteria", "Additional context"]
+SUMMARY_MAX = 120
+PLACEHOLDER = re.compile(r"\[(Service|Component|Problem[^\]]*|The affected[^\]]*|\.\.\.|…)\]")
+SECRET = re.compile(r"(?i)(\b(token|password|passwd|secret|api[_-]?key)\s*[=:]\s*\S{6,}|authorization:\s*"
+                    r"(bearer|basic)\s+\S+|\bglpat-\w{10,})")
+CONFIDENCE = re.compile(r"(?i)\b(low|medium|high)\b")
+
+
+def check_draft(text):
+    problems = []
+    lines = text.splitlines()
+    first = next((i for i, l in enumerate(lines) if l.strip()), None)
+    summary = ""
+    if first is None or not lines[first].startswith("Summary:"):
+        problems.append("first line must be `Summary: <text>`")
+    else:
+        summary = lines[first][len("Summary:"):].strip()
+        if not summary:
+            problems.append("summary is empty")
+        elif len(summary) >= SUMMARY_MAX:
+            problems.append(f"summary is {len(summary)} characters (keep it under {SUMMARY_MAX})")
+    found, bodies, cur = [], {}, None
+    for l in lines[(first or 0) + 1:]:
+        m = re.match(r"#{1,3}\s+(.*?)\s*$", l)
+        if m and m.group(1) in SECTIONS:
+            cur = m.group(1)
+            found.append(cur)
+            bodies[cur] = []
+        elif cur:
+            bodies[cur].append(l)
+    for s in SECTIONS:
+        if s not in found:
+            problems.append(f"section missing: ## {s}")
+        elif not "\n".join(bodies[s]).strip():
+            problems.append(f"section empty: ## {s}")
+    order = [s for s in found if s in SECTIONS]
+    if order != [s for s in SECTIONS if s in order]:
+        problems.append("sections out of order: " + ", ".join(order))
+    if len(order) != len(set(order)):
+        problems.append("a section appears twice")
+    if "Hypothesis" in bodies and not CONFIDENCE.search("\n".join(bodies["Hypothesis"])):
+        problems.append("Hypothesis does not state its confidence (low, medium or high)")
+    for m in PLACEHOLDER.finditer(text):
+        problems.append(f"template placeholder left: {m.group(0)}")
+    for m in SECRET.finditer(text):
+        problems.append(f"looks like a credential, remove it: {m.group(0)[:20]}...")
+    body_start = (first or 0) + 1
+    return problems, summary, "\n".join(lines[body_start:]).lstrip("\n") + "\n"
+
+
+def check_issue(path, label):
+    problems = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            fields = json.load(f).get("fields") or {}
+    except (OSError, ValueError, AttributeError) as e:
+        return [f"{path}: {e}"]
+    if not str(fields.get("summary") or "").strip():
+        problems.append("fields.summary is empty")
+    elif len(fields["summary"]) >= SUMMARY_MAX:
+        problems.append(f"summary is {len(fields['summary'])} characters (keep it under {SUMMARY_MAX})")
+    if not str(fields.get("description") or "").strip():
+        problems.append("fields.description is empty")
+    if label not in (fields.get("labels") or []):
+        problems.append(f"label {label!r} missing: rebuild with md2jira ... --label {label}")
+    if not (fields.get("project") or {}).get("key"):
+        problems.append("fields.project.key missing")
+    if not fields.get("issuetype"):
+        problems.append("fields.issuetype missing")
+    for m in SECRET.finditer(json.dumps(fields)):
+        problems.append(f"looks like a credential, remove it: {m.group(0)[:20]}...")
+    return problems
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("draft", nargs="?")
+    ap.add_argument("--body", action="store_true", help="print the description (draft without Summary line)")
+    ap.add_argument("--issue", help="create_issue body JSON to check")
+    ap.add_argument("--label", default="nightmanager")
+    a = ap.parse_args()
+    if bool(a.draft) == bool(a.issue):
+        ap.error("give a draft file or --issue issue.json")
+    if a.issue:
+        problems = check_issue(a.issue, a.label)
+    else:
+        try:
+            with open(a.draft, encoding="utf-8") as f:
+                text = f.read()
+        except OSError as e:
+            ap.error(str(e))
+        problems, summary, body = check_draft(text)
+    for p in problems:
+        print(f"ticket-check: {p}", file=sys.stderr)
+    if problems:
+        return 1
+    if a.draft:
+        print(f"ticket-check: ok; summary ({len(summary)} chars): {summary}", file=sys.stderr)
+        if a.body:
+            sys.stdout.write(body)
+    else:
+        print("ticket-check: ok", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
