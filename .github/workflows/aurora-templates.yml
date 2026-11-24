@@ -25,8 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Install the aurora CLI at a pinned version. Either download the release
-      # binary (below) or build it:
+      # Install the aurora CLI at a pinned version.
       - name: Install the aurora CLI
         run: |
           cd /usr/local/bin
