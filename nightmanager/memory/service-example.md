@@ -1,6 +1,6 @@
 ---
 key: service-example
-updated: 2026-11-24
+updated: 2026-11-25
 locked: true
 ---
 EXAMPLE: this memory only shows the format of an operator memory. It describes no real service. Your agent ignores it. Copy its shape to a new memory named `service-<your service>` (a short lowercase name, such as `service-mirror`), replace every line with facts about your service, lock it, and delete this one.
@@ -52,6 +52,13 @@ Project `MIR` ("Mirror") on the company Jira.
 - Egress: 15–45 MB/s fleet-wide.
 - 404s: about 7% of requests, mostly clients asking for removed repositories (known issue below).
 - The nightly sync jobs at 02:00 UTC raise filesystem metadata load for about 20 minutes.
+
+## Alerts (for the watch-for-recurrence skill)
+- Grafana folder for the agent's tripwire rules: `Mirror agent rules`, uid `<folder-uid>`.
+- Contact point that calls the agent's webhook: `aurora-nightmanager`.
+- Prometheus data source uid for tripwire expressions: `<prometheus-datasource-uid>` (the `Metrics Prometheus` source above).
+- Tripwires the operator allows for this service: 5.
+- Create nothing for this service if any of these is missing.
 
 ## Known issues
 - Two internal clients poll `repomd.xml` of removed repositories around the clock: a large, constant share of all 404s. Harmless; do not report it unless it changes.

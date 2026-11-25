@@ -121,7 +121,7 @@ Summary: [Service] [Component] — [Problem or required change], under 120 chara
 
 ## Verification and acceptance criteria
 
-[How the implementer can establish that the change worked. Include a verification query where useful, written to be run as it stands (exact query, data source, window, expected result): The Fixer copies it into its merge request and you run it after deployment. Clearly identify proposed verification queries as proposed queries — they have not been executed unless they also appear as executed queries in the original report. Use measurable acceptance criteria wherever possible.]
+[How the implementer can establish that the change worked. Include a verification query where useful, written to be run as it stands (exact query, data source, window, expected result): The Fixer copies it into its merge request and you run it after deployment. Clearly identify proposed verification queries as proposed queries — they have not been executed unless they also appear as executed queries in the original report. Use measurable acceptance criteria wherever possible. A Grafana tripwire left to watch for the problem's return (the watch-for-recurrence skill) is named here by its rule uid and title, so a person can see it and clean it up.]
 
 ## Additional context
 

@@ -79,6 +79,7 @@ Supplements `service-<service>`. Last tidied: <date>.
 ## Validated baselines            (or: see nightmanager-<service>-baselines)
 ## Confirmed failure modes
 ## Open items                     (tickets: key, summary, state, what to do on recurrence)
+## Alerts (watching)              (tripwires: one line each, the watch-for-recurrence skill's format)
 ## Recent observations            (dated, newest first)
 ## Past episodes                  (one line each)
 ## Discrepancies with the operator memory
@@ -113,7 +114,8 @@ Never append blindly. Do this each time you save:
 6. **Closed tickets**: remove the story, keep the key and the outcome *only if it tells a later run what to do* ("closed as a false alarm; do not re-file", "comment on it on recurrence"). Otherwise drop it.
 7. **Examples, not inventories.** Three example paths, hosts or client addresses are enough; do not keep lists.
 8. **Never keep** run state ("re-check at 22:31"), who was told what, draft ticket text, query output beyond the few values that define a baseline or a signature, anything the report or Jira already holds, or anything that is just a copy of the operator memory.
-9. **Never drop in a tidy-up**: the key and state of an open ticket; an operator decision that affects what you do (a ticket closed as a false alarm, a limit someone set deliberately); validated baselines; the signature and detection query of a confirmed failure mode; a discrepancy with the operator memory that is still unresolved.
+9. **Never drop in a tidy-up**: the key and state of an open ticket; an operator decision that affects what you do (a ticket closed as a false alarm, a limit someone set deliberately); validated baselines; the signature and detection query of a confirmed failure mode; a discrepancy with the operator memory that is still unresolved; a tripwire line whose state is `active`.
+10. **Tripwires**: a tripwire line whose state is `expired` or `deleted` leaves the registry within a week (the rule itself is gone or expired; the ticket and any lesson it left stay where they belong). The registry counts toward the 8,000-character budget of the main memory like any other section.
 
 ### Scheduled tidy-up
 

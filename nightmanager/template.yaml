@@ -1,13 +1,16 @@
 format: 1
 id: nightmanager
-version: 1.3.0
+version: 1.4.0
 name: NightManager
 summary: Watches your services for you, writes evidence-based situation reports, files Jira tickets for what needs fixing, and keeps its own notes tidy.
 apps:
   - app: grafana
     required: true
-    level: read
-    why: Runs the Prometheus and OpenSearch queries behind every report, and reads dashboards and alert state. It never changes dashboards, alerts or silences.
+    level: ask
+    tools:
+      allow: [get_current_org, search, list_folders, get_folder, get_dashboard, list_datasources, get_datasource, check_datasource_health, prometheus_query, prometheus_query_range, prometheus_series, prometheus_labels, prometheus_label_values, list_alert_rule_states, list_alert_rules, get_alert_rule, list_alerts, list_annotations, list_contact_points, query_datasources]
+      ask: [create_alert_rule, update_alert_rule, delete_alert_rule]
+    why: Runs every report's queries and reads dashboards, alert state and contact points; sets tripwire alert rules for recurring problems, each waiting for your approval. Nothing else in Grafana changes.
   - app: jira-dc
     required: false
     level: ask

@@ -8,7 +8,7 @@ NightManager is a Site Reliability Engineering agent that looks after one servic
 - **Files Jira tickets** for hypotheses that are specific enough to act on and confident enough (medium by default). It first looks for an existing ticket and updates that instead of filing a duplicate. Every ticket it files carries the label `nightmanager`.
 - **Keeps notes** about each service: baselines of normal behaviour, confirmed failure modes, what became of its tickets. It keeps those notes small by merging repeats and dropping what has stopped mattering.
 
-It reads; it does not fix. It cannot change dashboards, alerts or silences, and it makes no change to your services. It never messages anyone on its own. Creating or commenting on a Jira ticket waits for your approval, because the Jira connection is set to ask. **Jira is optional**: without it the agent only reports, and puts ticket drafts in the report.
+It reads; it does not fix. It cannot change dashboards, silences or any other Grafana or monitoring state, and it makes no change to your services — the one exception is **tripwires** (below), its own alert rules, every one of which waits for your approval. It never messages anyone on its own. Creating or commenting on a Jira ticket waits for your approval, because the Jira connection is set to ask. **Jira is optional**: without it the agent only reports, and puts ticket drafts in the report.
 
 ## Who it's for
 
@@ -20,7 +20,7 @@ NightManager has a teammate: **The Fixer** (another template in this repository)
 
 ## What it needs
 
-- **Grafana** (read): the agent runs its queries as the account you give it. Give it a Viewer service account that can see the data sources of your service.
+- **Grafana** (custom): the agent runs its queries as the account you give it and reads dashboards, alert state and contact points; it may also set **tripwire** alert rules, and every create, change or delete of one waits for your approval. Give it a service account that can see the data sources of your service; for tripwires, grafana 1.6.0 or later and a token that can edit **one folder** (see Tripwires).
 - **Jira Data Center** (optional, ask): searching is allowed; creating issues and comments asks you first. Without it the agent cannot see existing tickets, so its drafts may duplicate one, and it cannot learn from resolved incidents; it says so in its report.
 - **GitLab** (optional, read): lets it read your service's configuration (Puppet, Helm charts, application code) when a finding points at a deployment or a limit.
 - **A service memory**, written by you. This is the one thing the agent cannot do for itself, and it matters more than anything else here. See below.
@@ -34,7 +34,21 @@ NightManager has a teammate: **The Fixer** (another template in this repository)
 
 ## What it does on its own
 
-Only the **Nightly check** schedule, once you enable it: a situation report over the last 12 hours for every service that has a `service-<name>` memory (the example is skipped), with tickets filed or updated as described above.
+The **Nightly check** schedule, once you enable it: a situation report over the last 12 hours for every service that has a `service-<name>` memory (the example is skipped), with tickets filed or updated as described above. And a **wake-up**: when a tripwire fires, Grafana calls the agent's **Grafana alert** webhook and the agent investigates in the moment (below).
+
+## Tripwires
+
+A tripwire is a Grafana alert rule the agent sets for the signature of a problem it has already evidenced — a ticket it filed or a failure mode it recorded — so that Grafana wakes it when the problem comes back. The agent uses them sparingly: at most 5 per service and 10 in total, every one with an expiry of at most 30 days, and one tripwire wakes it at most 3 times in 24 hours (after that it only counts and asks for a person on the ticket). A wake-up investigates briefly, comments on the ticket and changes nothing on any service.
+
+What a tripwire needs, in order:
+
+1. **Grafana 1.6.0 or later** on the connected server (older versions have no alert-rule tools; the agent reports the gap and sets nothing).
+2. **A folder named for the agent**, with the service account's token allowed to edit that one folder and no other (in Grafana: create the folder, open it, Permissions, add the service account with Edit).
+3. **The folder, the contact point's name and the Prometheus data source uid** written in the operator memory's "Alerts" section — the agent creates nothing when any of these is missing.
+4. **A contact point** in Grafana that calls the agent's webhook: in Aurora the template creates the **Grafana alert** webhook paused — copy its address and the secret it shows once (leave it paused for now); in Grafana add a contact point with the Webhook integration, the Aurora address, POST, and the secret as an `Authorization: Bearer` header — leave resolved messages off and cap how many alerts one notification carries. Grafana's own contact-point pages and the app's setup text walk through this screen by screen, including how to test the whole path and what to look at when nothing arrives.
+5. **Then enable the Grafana alert webhook** in Aurora, and use its test button: the webhook page shows recent deliveries, so you can confirm the whole path before any tripwire exists.
+
+Every tripwire is one query Grafana evaluates on its interval, and every wake-up is a full agent turn — that is what the caps and the expiry are for. You can see the agent's rules in Grafana's alert list filtered by the folder, edit or delete them like any rule, and pause the webhook or delete the contact point to stop the wake-ups. Rules do not expire by themselves: the agent deletes its own expired rules at the start of its runs (each delete waits for your approval — approve it, or pause the webhook if you want the wake-ups stopped first).
 
 ## Adapting it
 

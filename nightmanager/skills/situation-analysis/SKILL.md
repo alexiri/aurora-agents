@@ -16,6 +16,8 @@ Convert the requested window to absolute UTC timestamps before the first query (
 
 Read the service's operator memory (`service-<service>`) and your own (`nightmanager-<service>`), following the service-memory skill. If your own memory's `Last tidied` date is more than 30 days old, tidy it first, as that skill describes.
 
+At the start of the run, after reading your memory: run the watch-for-recurrence skill's clean-up (`grafana-alert expire --managed-by nightmanager`, then fix the registry), so expired tripwires are gone before the investigation starts.
+
 If no operator memory exists for the service, say so as a data gap and work from the dashboards and from what you can discover; do not guess names, data sources or hosts.
 
 Identify:
@@ -197,7 +199,7 @@ Tickets created or updated during the run, including their keys, summaries and a
 
 ## Service memory
 
-Durable knowledge added, updated or removed in NightManager's own service memory, and its size before and after if it was tidied. Distinguish validated knowledge from candidate knowledge. Omit if there were no memory changes.
+Durable knowledge added, updated or removed in NightManager's own service memory, and its size before and after if it was tidied. Distinguish validated knowledge from candidate knowledge. Say what happened to the tripwires this run: set, renewed or removed (the watch-for-recurrence skill's registry changes). Omit if there were no memory changes.
 ```
 
 ## Writing style
