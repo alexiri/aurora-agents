@@ -16,7 +16,7 @@ Convert the requested window to absolute UTC timestamps before the first query (
 
 Read the service's operator memory (`service-<service>`) and your own (`nightmanager-<service>`), following the service-memory skill. If your own memory's `Last tidied` date is more than 30 days old, tidy it first, as that skill describes.
 
-At the start of the run, after reading your memory: run the watch-for-recurrence skill's clean-up (`grafana-alert expire --managed-by nightmanager`, then fix the registry), so expired tripwires are gone before the investigation starts.
+At the start of the run, after reading your memory: run the watch-for-recurrence skill's clean-up (`grafana-alert expire --managed-by nightmanager --folder <the folder uid your rules belong in>`, then fix the registry), so expired tripwires are gone before the investigation starts.
 
 If no operator memory exists for the service, say so as a data gap and work from the dashboards and from what you can discover; do not guess names, data sources or hosts.
 

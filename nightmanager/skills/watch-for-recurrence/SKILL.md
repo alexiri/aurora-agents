@@ -63,7 +63,7 @@ You do not change anything on any service. If something needs doing, say what an
 
 ## Cleaning up
 
-At the start of a run (the situation-analysis skill says so), run `grafana-alert expire --managed-by nightmanager` — it deletes, each through its own approval, every tripwire of yours whose expiry has passed — and then fix the registry: mark a line `expired` when the delete is asked for, and `deleted` only after `grafana-alert list` no longer shows the rule (a delete waiting for approval is pending, not done). Delete a tripwire when its ticket is verified fixed or closed, or when it expired without firing. Renew one only with new evidence, and say why. Never touch a rule without your `managed_by` label, and never touch a rule outside your folder: the script refuses both, and so do you.
+At the start of a run (the situation-analysis skill says so), run `grafana-alert expire --managed-by nightmanager --folder <the folder uid your rules belong in>` — it deletes, each through its own approval, every tripwire of yours whose expiry has passed in that folder — and then fix the registry: mark a line `expired` when the delete is asked for, and `deleted` only after `grafana-alert list` no longer shows the rule (a delete waiting for approval is pending, not done). Delete a tripwire when its ticket is verified fixed or closed, or when it expired without firing. Renew one only with new evidence, and say why. Never touch a rule without your `managed_by` label, and never touch a rule outside your folder: the script refuses both, and so do you.
 
 ## Costs and limits
 
