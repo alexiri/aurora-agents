@@ -105,6 +105,8 @@ Use jira-ticketing to evaluate actionable hypotheses against the minimum confide
 
 Do not create tickets for mere suggestions to investigate or check something.
 
+Look at the open tickets for the service before you report. A ticket with the label `fixer-mr` has a fix in review (The Fixer's draft merge request): say so in the report ("fix in review: KEY") instead of treating the problem as unhandled, and follow the jira-ticketing skill's rules for it. A merged and deployed fix gets its verification query run.
+
 ## Query rules
 
 These rules are canonical. The data-source skills apply them; do not restate them there.

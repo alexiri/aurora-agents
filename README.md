@@ -7,6 +7,7 @@ Ready-made agents for [Aurora](https://github.com/alexiri/aurora), kept as **tem
 | Template | What it does |
 |----------|--------------|
 | [nightmanager](nightmanager/) | Watches one service at a time through Grafana (Prometheus and OpenSearch), writes evidence-based situation reports, files Jira tickets for actionable findings, and keeps small, tidy notes about each service. |
+| [the-fixer](the-fixer/) | Takes tickets a triager has marked ready (typically NightManager's), makes the fix in your configuration repositories and opens a draft merge request. Built to work with NightManager: they share Jira labels and a verification handshake. |
 
 ## Using the templates
 
@@ -25,8 +26,8 @@ To publish a new version, raise `version` in `<template>/template.yaml` and merg
 
 ```
 aurora-templates.yaml             the repository manifest (where packages are published)
-nightmanager/                     one directory per template, named by its id
-  README.md  template.yaml  agent.yaml  instructions.md
+nightmanager/, the-fixer/         one directory per template, named by its id
+  README.md  template.yaml  agent.yaml  instructions.md  avatar.png
   memory/  skills/  automations/
 .github/workflows/aurora-templates.yml   check on every push, publish on merge to main
 .github/aurora-publish.sh                the publish job's logic

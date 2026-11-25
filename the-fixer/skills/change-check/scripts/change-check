@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""change-check: hold the diff of a repository against The Fixer's rules before pushing.
+
+  change-check --base origin/main [--max-lines 300] [--max-files 10] [--forbid PATH]... [--allow PATH]...
+
+Run it inside the repository (it works from the repository's top folder). It compares the working tree (commits on
+your branch, the index and unstaged changes, new files included) with --base and checks:
+  - at most --max-lines changed lines (added + deleted) and --max-files files;
+  - nothing in CI configuration or in a file the tests or the CI run (build files, test helpers, dependency
+    manifests, submodule settings), nor under any --forbid path. --allow exempts one default path, and only
+    when the repository map says it is a normal place for a fix;
+  - no symlink, submodule (gitlink) or file-mode change; no binary file; at most 3 deleted files; no very long line;
+  - no added line that looks like a credential, and no secret-looking file name;
+  - that something changed at all.
+Nothing is sent anywhere. Exit status: 0 ok, 1 problems found (each on stderr, with its path), 2 bad usage.
+"""
+import argparse
+import fnmatch
+import os
+import re
+import subprocess
+import sys
+
+# CI configuration, and files that the test commands or the CI execute: editing them would run code of the
+# change's choosing in the sandbox or in the pipeline, before anyone reviews it.
+FORBIDDEN = (
+    ".gitlab-ci.yml", ".gitlab-ci/", ".gitlab/", ".github/", "Jenkinsfile", "azure-pipelines.yml", ".circleci/",
+    ".travis.yml", "Makefile", "makefile", "GNUmakefile", "*.mk", "Rakefile", "Gemfile", "Gemfile.lock", ".fixtures.yml",
+    "spec_helper*", ".rspec", "Puppetfile", "conftest.py", "tox.ini", "noxfile.py", "package.json", "package-lock.json",
+    "pyproject.toml", "setup.py", "setup.cfg", "requirements*.txt", ".pre-commit-config.yaml", ".gitmodules",
+)
+SECRET_NAMES = re.compile(r"(^|/)(\.env(\..*)?|id_rsa.*|id_ed25519.*|.*\.pem|.*\.key|.*\.p12|.*\.pfx)$")
+SECRET_LINE = re.compile(
+    r"(?i)([\w.-]*(token|passw(or)?d|secret|api[_-]?key|private[_-]?key|credential)[\w.-]*['\"]?\s*(=>|[=:])\s*['\"]?"
+    r"(?!ENC\[|%\{|\$\{|\{\{|/|lookup\(|hiera)[^\s'\",]{6,}"
+    r"|://[^/\s:@]+:[^/\s@]+@"
+    r"|authorization:\s*(bearer|basic)\s+\S+|-----BEGIN [A-Z ]*PRIVATE KEY-----|\bglpat-[\w-]{10,}|\bAKIA[0-9A-Z]{16}\b"
+    r"|\bgh[pousr]_[A-Za-z0-9]{20,})"
+)
+MAX_DELETED_FILES = 3
+MAX_LINE = 4000
+
+
+def git(*args, check=True):
+    p = subprocess.run(["git", *args], capture_output=True, text=True)
+    if check and p.returncode != 0:
+        print(f"change-check: git {' '.join(args)}: {p.stderr.strip()}", file=sys.stderr)
+        sys.exit(2)
+    return p.stdout
+
+
+def norm(path):
+    path = os.path.normpath(path.strip())
+    return "" if path == "." else path.replace(os.sep, "/")
+
+
+def clean(pattern):
+    """A forbid/allow pattern without a leading ./ (a trailing / is kept: it means a folder)."""
+    return re.sub(r"^(\./)+", "", pattern.strip())
+
+
+def matches(path, pattern):
+    """Does the repository path fall under this pattern (file name, folder prefix, glob or file in any folder)?"""
+    pattern = pattern.rstrip("/") if not pattern.endswith("/") else pattern
+    if pattern.endswith("/"):
+        return path.startswith(pattern) or ("/" + pattern) in ("/" + path)
+    base = path.rsplit("/", 1)[-1]
+    return path == pattern or path.startswith(pattern + "/") or fnmatch.fnmatch(path, pattern) or fnmatch.fnmatch(base, pattern)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--base", required=True, help="the target branch, for example origin/main")
+    ap.add_argument("--max-lines", type=int, default=300)
+    ap.add_argument("--max-files", type=int, default=10)
+    ap.add_argument("--forbid", action="append", default=[], help="a path, folder or glob that must not change")
+    ap.add_argument("--allow", action="append", default=[], help="a default-forbidden path that may change here")
+    a = ap.parse_args()
+
+    top = git("rev-parse", "--show-toplevel").strip()
+    os.chdir(top)
+    git("rev-parse", "--verify", a.base + "^{commit}")
+    allowed = {clean(x) for x in a.allow}
+    forbidden = [clean(f) for f in FORBIDDEN if clean(f) not in allowed] + [clean(f) for f in a.forbid if clean(f)]
+
+    # Untracked files count: `-N` (intent to add) makes them show up in the diff. It is undone at the end.
+    new = [p for p in git("ls-files", "--others", "--exclude-standard", "-z").split("\0") if p]
+    if new:
+        subprocess.run(["git", "add", "-N", "--", *new], capture_output=True)
+    try:
+        problems = check(a, forbidden)
+    finally:
+        if new:
+            subprocess.run(["git", "reset", "-q", "--", *new], capture_output=True)
+
+    for p in problems:
+        print(f"change-check: {p}", file=sys.stderr)
+    return 1 if problems else 0
+
+
+def check(a, forbidden):
+    problems = []
+    numstat = git("diff", "--numstat", "-z", "--no-renames", a.base)
+    files = {}
+    for rec in [r for r in numstat.split("\0") if r]:
+        added, deleted, path = rec.split("\t", 2)
+        files[norm(path)] = (added, deleted)
+
+    # Modes: a symlink, a submodule or a mode change is never part of a fix.
+    raw = [r for r in git("diff", "--raw", "-z", "--no-renames", a.base).split("\0") if r]
+    for meta, path in zip(raw[0::2], raw[1::2]):
+        old_mode, new_mode = meta.split()[0].lstrip(":"), meta.split()[1]
+        if "120000" in (old_mode, new_mode) or "160000" in (old_mode, new_mode):
+            problems.append(f"{norm(path)}: symlink or submodule: not part of a fix")
+        elif old_mode != new_mode and "000000" not in (old_mode, new_mode):
+            problems.append(f"{norm(path)}: file mode changed ({old_mode} to {new_mode})")
+
+    if not files:
+        problems.append("nothing changed: an empty merge request is no use (declining is a result)")
+    if len(files) > a.max_files:
+        problems.append(f"{len(files)} files changed (limit {a.max_files})")
+    total = 0
+    deleted_files = []
+    for path, (added, deleted) in sorted(files.items()):
+        if added == "-":
+            problems.append(f"{path}: binary file: you change text")
+            continue
+        total += int(added) + int(deleted)
+        if int(deleted) > 0 and not os.path.lexists(path):
+            deleted_files.append(path)
+        for f in forbidden:
+            if matches(path, f):
+                problems.append(f"{path}: forbidden path ({f}): needs a person")
+                break
+        if SECRET_NAMES.search(path):
+            problems.append(f"{path}: looks like a secret file")
+    if total > a.max_lines:
+        problems.append(f"{total} changed lines (limit {a.max_lines})")
+    if len(deleted_files) > MAX_DELETED_FILES:
+        problems.append(f"{len(deleted_files)} files deleted (limit {MAX_DELETED_FILES}): " + ", ".join(deleted_files))
+
+    current = ""
+    for line in git("diff", "-U0", "--no-renames", a.base).splitlines():
+        if line.startswith("+++ b/"):
+            current = line[6:].rstrip("\t")
+        elif line.startswith("+") and not line.startswith("+++"):
+            if len(line) > MAX_LINE:
+                problems.append(f"{current}: a line of {len(line)} characters: not a hand-made change")
+            elif SECRET_LINE.search(line):
+                m = SECRET_LINE.search(line)
+                problems.append(f"{current}: an added line looks like a credential, remove it: {m.group(0)[:24]}...")
+    if not problems:
+        print(f"change-check: ok; {len(files)} file(s), {total} changed line(s)", file=sys.stderr)
+    return problems
+
+
+if __name__ == "__main__":
+    sys.exit(main())

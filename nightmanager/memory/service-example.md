@@ -40,6 +40,11 @@ Grafana data source: `Logs web`, uid `<opensearch-datasource-uid>`, index patter
 ## Jira
 Project `MIR` ("Mirror") on the company Jira.
 
+## Repositories (where the configuration lives)
+- `platform/mirror-puppet`: Puppet code and Hiera data for the web hosts. Apache settings (workers, timeouts, rate limits, access rules) are in `hieradata/hostgroup/mirror/web.yaml`.
+- `platform/mirror-sync-jobs`: Nomad job definitions of the nightly sync, one file per upstream (the "Failing jobs" alerts).
+- Name these in tickets, so a fix can be made from the ticket alone.
+
 ## Normal behaviour (weekday, observed 2026-11-10..14; a single week, so treat it as guidance)
 - All hosts `apache_up=1`; no restarts; no 5xx.
 - Requests: 70,000–140,000 per 15 minutes fleet-wide.

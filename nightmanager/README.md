@@ -14,6 +14,10 @@ It reads; it does not fix. It cannot change dashboards, alerts or silences, and 
 
 Teams who run a service with Prometheus metrics and OpenSearch logs in Grafana and track their work in Jira, and who want a first look at overnight or weekend trouble before an engineer starts: what happened, how sure the agent is, and what a ticket should say.
 
+## Working with The Fixer
+
+NightManager has a teammate: **The Fixer** (another template in this repository). NightManager files tickets with the label `nightmanager`; a triager adds `fixer-ready` to the ones worth a try; The Fixer opens a draft merge request and labels the ticket `fixer-mr`; a person reviews it; The Fixer says on the ticket when it's merged (or closed); and NightManager then runs the ticket's verification query from the merge time and says whether the fix worked. Neither agent changes a ticket's status, and only a person adds `fixer-ready`. Use the same service name in both: NightManager reads `service-<name>`, The Fixer reads `repos-<name>`. Name the repositories where the configuration lives in your `service-<name>` memory so tickets can say where a change belongs. NightManager works fine without The Fixer.
+
 ## What it needs
 
 - **Grafana** (read): the agent runs its queries as the account you give it. Give it a Viewer service account that can see the data sources of your service.

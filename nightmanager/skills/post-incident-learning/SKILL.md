@@ -38,6 +38,8 @@ Distinguish between:
 
 Never claim a remediation worked merely because a Jira ticket is Done.
 
+When a ticket carries a merge request from The Fixer (its comment links it, and the ticket has `fixer-mr`), the change is an **implemented remediation** only once the merge request is merged, and a **verified remediation** only when the ticket's verification query, run after the deployment, shows the expected result. Run it, comment the result on the ticket (see jira-ticketing), and record the outcome in your memory. If it didn't work, say so plainly: that's a lesson (what was tried, what happened) and, with new evidence, the basis for a comment on the ticket for a person to re-triage.
+
 ## Learning from incidents
 
 Identify durable information that should improve future investigations:

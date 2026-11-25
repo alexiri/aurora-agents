@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""triage-check: has a triager marked this ticket ready for The Fixer?
+
+  triage-check issue.json --triagers alice,bob --me <your own Jira user name> [--label fixer-ready]
+
+issue.json is the saved result of `get_issue ... fields=labels,creator,description,comment expand=changelog`.
+It checks, from the changelog, that:
+  - the label is on the ticket and was added by a triager who is not you (a label present from creation counts as
+    added by the ticket's creator);
+  - nobody who is not a triager (and not you) changed the description after that.
+It also classifies every comment: steering (a triager's), evidence (the first line starts `NightManager:`),
+yours, or information (anyone else's), so that only the first kind steers the work.
+Accounts are matched on the Jira user name (`name`), never the display name. Nothing is sent anywhere.
+Exit status: 0 ok, 1 not ready (the reason on stdout), 2 bad usage.
+"""
+import argparse
+import json
+import sys
+
+
+def user(u):
+    return ((u or {}).get("name") or (u or {}).get("key") or (u or {}).get("accountId") or "").lower()
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("issue")
+    ap.add_argument("--triagers", required=True, help="comma-separated Jira user names")
+    ap.add_argument("--me", required=True, help="your own Jira user name")
+    ap.add_argument("--label", default="fixer-ready")
+    a = ap.parse_args()
+    triagers = {t.strip().lower() for t in a.triagers.split(",") if t.strip()}
+    me = a.me.strip().lower()
+    if not triagers:
+        print("not ready: the repos memory lists no triagers")
+        return 1
+    try:
+        with open(a.issue, encoding="utf-8") as f:
+            issue = json.load(f)
+    except (OSError, ValueError) as e:
+        print(f"triage-check: {a.issue}: {e}", file=sys.stderr)
+        return 2
+    key = issue.get("key", "the ticket")
+    fields = issue.get("fields") or {}
+    if a.label not in (fields.get("labels") or []):
+        print(f"not ready: {key} does not have the label {a.label}")
+        return 1
+
+    histories = sorted((issue.get("changelog") or {}).get("histories") or [], key=lambda h: h.get("created", ""))
+    added_by, added_at = None, ""
+    for h in histories:
+        for it in h.get("items") or []:
+            if it.get("field") != "labels":
+                continue
+            before = (it.get("fromString") or "").split()
+            after = (it.get("toString") or "").split()
+            if a.label in after and a.label not in before:
+                added_by, added_at = user(h.get("author")), h.get("created", "")
+    if added_by is None:
+        added_by = user(fields.get("creator"))  # present since creation: no changelog entry
+        added_at = ""
+    if added_by == me:
+        print(f"not ready: the label {a.label} was added by your own account ({added_by}), which doesn't count")
+        return 1
+    if added_by not in triagers:
+        print(f"not ready: the label {a.label} was added by {added_by or 'an unknown account'}, who is not a listed triager")
+        return 1
+
+    for h in histories:
+        if h.get("created", "") <= added_at:
+            continue
+        who = user(h.get("author"))
+        if who in triagers or who == me:
+            continue
+        if any(it.get("field") == "description" for it in h.get("items") or []):
+            print(f"not ready: the description was changed by {who or 'an unknown account'} (not a triager) after the label was added")
+            return 1
+
+    print(f"ok: {a.label} added by triager {added_by}" + (f" at {added_at}" if added_at else " (at creation)"))
+    for c in (fields.get("comment") or {}).get("comments") or []:
+        who = user(c.get("author"))
+        first = ((c.get("body") or "").lstrip().splitlines() or [""])[0]
+        if first.startswith("NightManager:"):
+            kind = "evidence"
+        elif who == me:
+            kind = "yours"
+        elif who in triagers:
+            kind = "steering"
+        else:
+            kind = "information"
+        print(f"comment {c.get('id', '?')} by {who or '?'}: {kind}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

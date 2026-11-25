@@ -1,0 +1,16 @@
+kind: schedule
+name: Pick up ready tickets
+prompt: >-
+  Look for Jira tickets a triager has marked ready for you, as the
+  ticket-handoff skill describes, and work the first two with the fix-ticket
+  skill. Then look at your open merge requests (they are listed in your
+  fixer-<service> memories) and follow any review feedback with the
+  address-review skill, posting the Merged or Closed comment on the ticket
+  for any that have been merged or closed. If Jira is not connected, skip the
+  tickets and still check your open merge requests. If there is nothing ready
+  and nothing to follow up, say so in one line and stop.
+  Keep the final message short: for each ticket, what you did and what you
+  need from a person.
+cadence:
+  cron: "0 9,13,16 * * *"
+enabled: false

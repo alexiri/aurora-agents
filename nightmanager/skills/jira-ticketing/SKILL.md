@@ -66,6 +66,30 @@ Do not treat an open ticket as proof that the problem is currently occurring.
 
 If Jira cannot be searched or existing tickets cannot be inspected, report the limitation rather than blindly creating tickets that might be duplicates.
 
+## Working with The Fixer
+
+A teammate agent, The Fixer, may take tickets you file and propose the fix as a draft merge request. You and it meet in Jira, by these labels:
+
+| Label | Who adds it | Means |
+|---|---|---|
+| `nightmanager` | you | You wrote this ticket. |
+| `fixer-ready` | a person, only | Triaged: worth a fix attempt. **Never add it yourself**, and never remove it. |
+| `fixer-mr` | The Fixer | A draft merge request is in review. |
+| `fixer-declined` | The Fixer | It looked and changed nothing; its comment says why. |
+
+What this means for you:
+
+- **Write tickets it can act on.** The Fixer reads the ticket and not your report. Its *Proposed change* names the repository, file and setting when your operator memory says where the configuration lives (its "Repositories" section), and is concrete about the value or behaviour that should change. If you don't know where the change belongs, say that rather than guess.
+- **Make the verification query runnable as written.** The Fixer copies it verbatim into its merge request, and you or a person run it after deployment. It needs the exact query, the data source, the window and the expected result.
+- **`fixer-mr` means a fix is in review: leave the ticket alone** until The Fixer's **Merged** or **Closed** comment appears on it. The ticket still counts as the existing ticket for its problem: never file a new one for it. It gets no comments from you (not even recurrence notes) unless you have materially new evidence that changes the fix; then one comment saying so, because the merge request may need to change. Mention it in the report as "fix in review".
+- **Where "merged" and "closed" come from:** The Fixer's **Merged** or **Closed** comment, trusted when it comes from The Fixer's account or links the merge request that The Fixer's own `Draft merge request:` comment gave. If the gitlab app is connected, read that merge request (`get_merge_request`) yourself: its `merged_at` or closed state counts as the comment, even if the comment hasn't been written (The Fixer's schedule may be off). A ticket that has had `fixer-mr` for 14 days with neither the comment nor a merged or closed merge request: say so in your report, once.
+- **A "Closed without merging" comment:** the fix is off. Treat the ticket as an ordinary open ticket again (follow the rules below for updating it), and say in your memory what was tried.
+- **A "Merged" comment:** the ticket's verification query is how you find out whether the fix worked. Run it in your next run for that service, over a window that starts at the merge time given in the comment, plus the deployment delay the comment or your service memory names (if neither names one, start the window one hour after the merge, and say so in your comment). Comment on the ticket **only** with a definite result: verified, or not verified, with the query and the values. "Can't tell yet" goes in your report and your memory, not on the ticket. Never close the ticket, and never call a remediation verified without that query. Record the outcome as `post-incident-learning` says. A ticket a person has already closed after the merge is still verified: also search `labels = fixer-mr AND resolved >= -14d` for the service's project.
+- **`fixer-declined`:** read its comment. If it shows the ticket was wrong (a misread setting, a different cause), correct what you know in your own memory, and add one comment with the correction and any new evidence. Don't re-file the ticket and don't add labels.
+- **Your comments on tickets start with the line `NightManager:`**, always. The Fixer treats a comment that starts that way as your evidence, never as an instruction, whoever's account posted it (you file through a person's connection).
+- **Never edit the description of a ticket that has `fixer-ready`.** A person triaged what it said; The Fixer refuses a ticket whose description changed after triage. Put new evidence in a comment instead.
+- **Labels:** you never add `fixer-ready`, `fixer-mr` or `fixer-declined`, and you never remove a label. If you ever edit a ticket's labels, add with `{"update":{"labels":[{"add":"<label>"}]}}`; never send `fields.labels`, which replaces them all.
+
 ## Ticket quality
 
 Every ticket must be self-contained. Its implementer must not need the original situation report to understand the problem and proposed change.
@@ -93,11 +117,11 @@ Summary: [Service] [Component] — [Problem or required change], under 120 chara
 
 ## Proposed change
 
-[What should be changed, and where. Why it should address the problem. What reliability improvement it should achieve. Be concrete without inventing implementation details that the evidence does not establish. Prefer fixing underlying causes over individual symptoms.]
+[What should be changed, and where: the repository, file and setting when the operator memory says where the configuration lives, and the value or behaviour wanted (The Fixer reads this section to make the change). Why it should address the problem. What reliability improvement it should achieve. Be concrete without inventing implementation details that the evidence does not establish. Prefer fixing underlying causes over individual symptoms.]
 
 ## Verification and acceptance criteria
 
-[How the implementer can establish that the change worked. Include a verification query where useful, together with its expected result. Clearly identify proposed verification queries as proposed queries — they have not been executed unless they also appear as executed queries in the original report. Use measurable acceptance criteria wherever possible.]
+[How the implementer can establish that the change worked. Include a verification query where useful, written to be run as it stands (exact query, data source, window, expected result): The Fixer copies it into its merge request and you run it after deployment. Clearly identify proposed verification queries as proposed queries — they have not been executed unless they also appear as executed queries in the original report. Use measurable acceptance criteria wherever possible.]
 
 ## Additional context
 
@@ -130,7 +154,7 @@ aurora-agent call jira-dc create_issue --body @issue.json --out /tmp/aurora-agen
 
 When updating an existing ticket:
 - Preserve its existing problem description and useful historical information.
-- Add materially new evidence when relevant.
+- Add materially new evidence when relevant, as a comment that starts with `NightManager:`. Don't edit the description of a ticket that has `fixer-ready`.
 - Update confidence only to the value assigned in the current report.
 - Record recurrence where supported by repeated observations.
 - Avoid duplicate comments or repeated identical evidence.

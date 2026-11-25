@@ -1,0 +1,52 @@
+format: 1
+id: the-fixer
+version: 1.0.0
+name: The Fixer
+summary: Takes a ticket a person has triaged, makes the fix in your configuration repositories, and opens a draft merge request for someone to review.
+apps:
+  - app: gitlab
+    required: true
+    level: ask
+    tools:
+      allow:
+        - get_current_user
+        - list_projects
+        - get_project
+        - list_repository_tree
+        - get_repository_file
+        - get_repository_file_raw
+        - list_branches
+        - list_commits
+        - list_merge_requests
+        - get_merge_request
+        - get_merge_request_diffs
+        - list_merge_request_notes
+        - list_pipelines
+        - get_pipeline
+        - list_pipeline_jobs
+        - get_job_log
+        - git_fetch
+        - git_push
+        - create_merge_request
+        - create_merge_request_note
+    why: Reads your configuration repositories, pushes a branch with the fix and opens a draft merge request. It cannot merge, run pipelines or delete anything. A person reviews every change.
+  - app: jira-dc
+    required: false
+    level: ask
+    tools:
+      allow:
+        - get_myself
+        - list_projects
+        - get_project
+        - search_issues
+        - get_issue
+        - list_issue_comments
+        - get_issue_comment
+      ask:
+        - add_issue_comment
+        - edit_issue
+    why: Finds tickets a person marked ready and reports back on them. Comments and labels ask you first; it never changes a status. Without Jira it works from tickets you paste in.
+  - app: grafana
+    required: false
+    level: read
+    why: Re-runs the query in the ticket before it changes anything, to check that the problem is still there. Without it, it takes the ticket's word for it and says so.
