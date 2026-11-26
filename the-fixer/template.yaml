@@ -1,6 +1,6 @@
 format: 1
 id: the-fixer
-version: 1.0.0
+version: 1.1.0
 name: The Fixer
 summary: Takes a ticket a person has triaged, makes the fix in your configuration repositories, and opens a draft merge request for someone to review.
 apps:

@@ -12,6 +12,7 @@ Where the configuration of the Example mirror service (mirror.example.org) lives
 ## Tickets
 - **Ticket project:** `MIR`.
 - **Triagers** (Jira user names; only these people's `fixer-ready` labels and comments steer the agent): `a.triager`, `b.triager` (the same names are used for their GitLab accounts unless a line here says otherwise). If this line is missing, the agent works on nothing.
+- **Trusted agents** (agents whose peer tasks count as a triager's own request, when the request names a triager above as the person it's for): `nightmanager`. Leave the line out and no agent can hand you work.
 - **After a merge:** Puppet applies the change to all web hosts within 30 minutes. Say so in the "Merged" comment, so the verification starts after that.
 
 ## Repositories
