@@ -45,7 +45,22 @@ What a tripwire needs, in order:
 1. **Grafana 1.6.0 or later** on the connected server (older versions have no alert-rule tools; the agent reports the gap and sets nothing).
 2. **A folder named for the agent**, with the service account's token allowed to edit that one folder and no other (in Grafana: create the folder, open it, Permissions, add the service account with Edit). One folder per agent: every NightManager agent carries the same `managed_by` label, so two agents sharing a folder would delete each other's rules in the expiry clean-up and count each other's rules toward the caps.
 3. **The folder, the contact point's name and the Prometheus data source uid** written in the operator memory's "Alerts" section — the agent creates nothing when any of these is missing.
-4. **A contact point** in Grafana that calls the agent's webhook: in Aurora the template creates the **Grafana alert** webhook paused — copy its address and the secret it shows once (leave it paused for now); in Grafana add a contact point with the Webhook integration, the Aurora address, POST, and the secret as an `Authorization: Bearer` header — leave resolved messages off and cap how many alerts one notification carries. Grafana's own contact-point pages and the app's setup text walk through this screen by screen, including how to test the whole path and what to look at when nothing arrives.
+4. **A contact point** in Grafana that calls the agent's webhook. This is the only thing you create in Grafana for the wake-ups.
+   - In Aurora, the template creates the **Grafana alert** webhook paused. Copy its address and the secret it shows once, and leave it paused for now.
+   - In Grafana (version 11 or later), open *Alerts & IRM*, *Alerting*, *Notification configuration*, the *Contact points* tab, and choose **+ Add contact point**. Fill the form in this order:
+     - **Name**: exactly the contact point name you wrote in the operator memory (`aurora-nightmanager` in the example). The agent's rules refer to the contact point by this name.
+     - **Integration**: **Webhook**.
+     - **URL**: the Aurora address. Never put the secret in the URL.
+     - **HTTP Method**: **POST**.
+     - **Authentication Header Scheme**: `Bearer`, Grafana's default.
+     - **Authentication Header Credentials**: the secret. Don't use Basic Authentication, because Grafana takes either that or the header, not both.
+     - **Max Alerts**: **10**. One notification then carries at most 10 alerts; any beyond that are left out, and the payload's `truncatedAlerts` says how many. The agent reads that number and looks the rest up itself. `0` means no limit: don't use it, because a flood of alerts would arrive as one very large message.
+     - **Disable resolved message**: **on**. A "resolved" notice would wake the agent for nothing.
+     - Leave everything else at its default: the title and message templates (the agent reads Grafana's default JSON payload) and the TLS settings. Don't use the HMAC signature settings, because Aurora can't verify Grafana's signature.
+   - Choose **Test**, then **Save contact point**.
+   - **You don't need a notification policy.** Every rule the agent creates names this contact point in its own notification settings (Grafana's simplified routing: in the rule form, *Configure notifications*, **Default**). Grafana sends that rule's alerts straight to the contact point, and notification policies, their matchers and their mute timings don't apply to it. The agent never creates or changes contact points, notification policies, mute timings or silences.
+   - Timing comes from Grafana's defaults for such rules, and the agent can't change it: group wait 30 seconds, group interval 5 minutes, repeat interval 4 hours. So a tripwire that stays firing reaches the agent about every 4 hours, within the 3-a-day cap above.
+   - The Grafana app's setup text in Aurora has the same steps, with a checklist and a list of what to look at when nothing arrives.
 5. **Then enable the Grafana alert webhook** in Aurora, and use its test button: the webhook page shows recent deliveries, so you can confirm the whole path before any tripwire exists.
 
 Every tripwire is one query Grafana evaluates on its interval, and every wake-up is a full agent turn — that is what the caps and the expiry are for. You can see the agent's rules in Grafana's alert list filtered by the folder, edit or delete them like any rule, and pause the webhook or delete the contact point to stop the wake-ups. Rules do not expire by themselves: the agent deletes its own expired rules at the start of its runs (each delete waits for your approval — approve it, or pause the webhook if you want the wake-ups stopped first).
