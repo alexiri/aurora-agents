@@ -1,3 +1,8 @@
+## 1.5.0
+
+- Tripwires can watch log lines as well as metrics: a count (or the sum, average, max or min of one field) of the documents that match one Lucene query over a window of 5 to 60 minutes. The agent uses a metric when a metric shows the problem and logs when the evidence is log lines; it takes the query from its own evidence, prefers `gt` on error counts, and uses `lt` only when the logs going quiet is the failure, because an `lt` count fires when nothing is logged. A wake-up from a log tripwire looks at the same query first, in one-minute buckets.
+- Log tripwires need grafana 1.9.0 or later and the OpenSearch data source uid in the operator memory's "Alerts" section (the example memory shows the line). Each one costs one aggregation over its window per evaluation. Baselines can now be log counts too.
+
 ## 1.4.2
 
 - The tripwire setup in the README names every setting of Grafana's webhook contact point, in the order of Grafana's form. It names **Max Alerts** as 10 and says what that does, and says **Disable resolved message** is on. It says plainly that the contact point is the only thing to create: no notification policy is needed, because the agent's rules name the contact point themselves, and the agent never creates or changes policies.

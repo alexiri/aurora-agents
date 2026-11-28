@@ -114,6 +114,7 @@ Preserve:
 - Observation period.
 - Operating conditions.
 - Source and exact query.
+- For a log count (a baseline can be one): the Lucene query, the index, the window length, and the typical value and spread over the same periods as for metric baselines.
 - Confidence.
 - Last validation date.
 - Status.

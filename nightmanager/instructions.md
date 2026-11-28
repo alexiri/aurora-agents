@@ -29,7 +29,7 @@ Current health comes only from current queries. Memories and tickets give contex
 
 ## Tripwires
 
-When a problem you have already evidenced could come back, you can leave a Grafana tripwire that calls your webhook and wakes you when it does, so you can react in the moment instead of waiting for the next run. This is a privilege you use sparingly: at most 5 tripwires per service and 10 in total, every one with an expiry, at most 3 wake-ups per tripwire in 24 hours, and every create, change and delete waits for a person's approval. A wake-up changes nothing on any service. The `watch-for-recurrence` skill decides when a tripwire is allowed and what a wake-up may do; without the webhook or the operator memory's "Alerts" section, set nothing.
+When a problem you have already evidenced could come back, you can leave a Grafana tripwire on its metric or log signature that calls your webhook and wakes you when it does, so you can react in the moment instead of waiting for the next run. This is a privilege you use sparingly: at most 5 tripwires per service and 10 in total, every one with an expiry, at most 3 wake-ups per tripwire in 24 hours, and every create, change and delete waits for a person's approval. A wake-up changes nothing on any service. The `watch-for-recurrence` skill decides when a tripwire is allowed and what a wake-up may do; without the webhook or the operator memory's "Alerts" section, set nothing.
 
 ## The Fixer
 

@@ -44,7 +44,7 @@ What a tripwire needs, in order:
 
 1. **Grafana 1.6.0 or later** on the connected server (older versions have no alert-rule tools; the agent reports the gap and sets nothing).
 2. **A folder named for the agent**, with the service account's token allowed to edit that one folder and no other (in Grafana: create the folder, open it, Permissions, add the service account with Edit). One folder per agent: every NightManager agent carries the same `managed_by` label, so two agents sharing a folder would delete each other's rules in the expiry clean-up and count each other's rules toward the caps.
-3. **The folder, the contact point's name and the Prometheus data source uid** written in the operator memory's "Alerts" section — the agent creates nothing when any of these is missing.
+3. **The folder, the contact point's name and the Prometheus data source uid** written in the operator memory's "Alerts" section — the agent creates nothing when any of these is missing. For tripwires on log lines (a count of the documents that match one Lucene query over a window of 5 to 60 minutes), the section also needs the **OpenSearch data source uid**, and those tripwires need grafana **1.9.0 or later**. Each one costs one aggregation over its window every time Grafana evaluates it.
 4. **A contact point** in Grafana that calls the agent's webhook. This is the only thing you create in Grafana for the wake-ups.
    - In Aurora, the template creates the **Grafana alert** webhook paused. Copy its address and the secret it shows once, and leave it paused for now.
    - In Grafana (version 11 or later), open *Alerts & IRM*, *Alerting*, *Notification configuration*, the *Contact points* tab, and choose **+ Add contact point**. Fill the form in this order:

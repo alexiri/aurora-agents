@@ -57,6 +57,7 @@ Project `MIR` ("Mirror") on the company Jira.
 - Grafana folder for the agent's tripwire rules: `Mirror agent rules`, uid `<folder-uid>`.
 - Contact point that calls the agent's webhook: `aurora-nightmanager`.
 - Prometheus data source uid for tripwire expressions: `<prometheus-datasource-uid>` (the `Metrics Prometheus` source above).
+- OpenSearch data source uid for log tripwires: `<opensearch-datasource-uid>` (the `Logs web` source above).
 - Tripwires the operator allows for this service: 5.
 - Create nothing for this service if any of these is missing.
 
